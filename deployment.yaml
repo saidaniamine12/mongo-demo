@@ -33,7 +33,6 @@ spec:
     - protocol: TCP
       port: 8080
       targetPort: 8080
-  type: NodePort  # Use NodePort to expose externally
 ---
 apiVersion: v1
 kind: Service
@@ -46,4 +45,3 @@ spec:
     - protocol: TCP
       port: 27017
       targetPort: 27017
-  type: NodePort  # Use NodePort to expose externally
