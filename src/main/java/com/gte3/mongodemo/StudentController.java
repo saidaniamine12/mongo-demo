@@ -11,6 +11,12 @@ public class StudentController {
     @Autowired
     private StudentService studentService;
 
+    // return hello when i enter the url
+    @GetMapping("/hello")
+    public String hello() {
+        return "Hello from Spring Boot";
+    }
+
     @GetMapping("/getAllStudent")
     public ResponseEntity<?> getAllStudent() {
         return ResponseEntity.ok(studentService.getAll());
