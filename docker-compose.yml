@@ -1,11 +1,13 @@
-version: '1'
+version: '3.8'
+
 services:
   myapp:
     image: medamine12/devopsproject
     ports:
       - "8080:8080"
     depends_on:
-      - mongodb
+      - mongo
+
   mongo:
     image: mongo:4.2.2
     hostname: mongo
