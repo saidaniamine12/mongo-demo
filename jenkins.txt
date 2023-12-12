@@ -1,0 +1,92 @@
+pipeline {
+    agent any
+
+    tools {
+        jdk 'jdk17'
+        maven 'maven3'
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                echo 'Cleaning Workspace...'
+                cleanWs()
+                echo 'Workspace Cleaned.'
+            }
+        }
+
+        stage('Checkout SCM') {
+            steps {
+                echo 'Checking out SCM...'
+                git 'https://github.com/saidaniamine12/mongo-demo.git'
+                echo 'SCM Checked Out.'
+            }
+        }
+
+        stage('Maven Compile') {
+            steps {
+                echo 'Compiling with Maven...'
+                sh 'mvn clean compile'
+                echo 'Maven Compile Completed.'
+            }
+        }
+
+        stage('Maven Test') {
+            steps {
+                echo 'Running Maven Tests...'
+                sh 'mvn test'
+                echo 'Maven Tests Completed.'
+            }
+        }
+
+        stage('Sonarqube Analysis') {
+            environment {
+                SCANNER_HOME = tool 'Sonar-scanner'
+            }
+            steps {
+                withSonarQubeEnv('Sonar-server') {
+                    sh """$SCANNER_HOME/bin/sonar-scanner \
+                        -Dsonar.projectName=DevopsProject \
+                        -Dsonar.java.binaries=. \
+                        -Dsonar.projectKey=DevopsProject"""
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-Token'
+                }
+            }
+        }
+        
+        stage ('Build and push to docker hub'){
+            steps{
+                script {
+                // Navigate to the directory where the Dockerfile is located
+                dir("/var/lib/jenkins/workspace/DevopsProject") {
+                // Log in to Docker registry
+                withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                    sh 'mvn clean package'
+                    sh "docker build -t devopsproject ."
+                    sh "docker tag devopsproject medamine12/devopsproject:latest"
+                    sh "docker push medamine12/devopsproject:latest"
+                }
+            }
+        }
+            }
+        }
+        stage("TRIVY"){
+            steps{
+                sh "trivy image medamine12/devopsproject:latest > trivy.txt"
+            }
+        }
+        stage ('Deploy to container'){
+            steps{
+                    // Run Docker Compose
+                    sh "docker-compose -f /var/lib/jenkins/workspace/DevopsProject/docker-compose.yml up -d"
+            }
+        }
+    }
+}
